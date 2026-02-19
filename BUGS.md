@@ -423,3 +423,35 @@ Prevention
 Always include both Max-Age and Expires for authentication cookies to ensure cross-browser consistency.
 
 
+---
+
+## PERF-402 – N+1 Queries in getTransactions
+**Priority:** Medium (Performance)
+
+### Reproduction
+In `server/routers/account.ts` under `getTransactions`, the code queried account details once per transaction:
+
+```ts
+for (const transaction of accountTransactions) {
+  await db.select().from(accounts).where(eq(accounts.id, transaction.accountId)).get();
+}
+This results in N+1 database queries (1 for transactions + N for accounts).
+
+Root Cause
+Account details were fetched repeatedly inside a loop even though all transactions belong to the same accountId.
+
+Fix
+Fetch the account once and enrich transactions in memory:
+
+const accountDetails = await db.select().from(accounts).where(eq(accounts.id, input.accountId)).get();
+
+return accountTransactions.map((transaction) => ({
+  ...transaction,
+  accountType: accountDetails?.accountType,
+}));
+Verification
+Transaction list renders correctly and the number of DB queries is reduced from N+1 to a constant number (2).
+
+Prevention
+Avoid per-row queries inside loops. Prefer joins or fetching shared reference data once.
+

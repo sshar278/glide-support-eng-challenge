@@ -148,7 +148,7 @@ export const accountRouter = router({
         })
         .where(eq(accounts.id, input.accountId));
 
-       const newBalance = account.balance + amount;
+      const newBalance = account.balance + amount;
 
       return {
         transaction,
@@ -182,16 +182,12 @@ export const accountRouter = router({
         .from(transactions)
         .where(eq(transactions.accountId, input.accountId));
 
-      const enrichedTransactions = [];
-      for (const transaction of accountTransactions) {
-        const accountDetails = await db.select().from(accounts).where(eq(accounts.id, transaction.accountId)).get();
+      const accountDetails = await db.select().from(accounts).where(eq(accounts.id, input.accountId)).get();
 
-        enrichedTransactions.push({
-          ...transaction,
-          accountType: accountDetails?.accountType,
-        });
-      }
+      return accountTransactions.map((transaction) => ({
+      ...transaction,
+      accountType: accountDetails?.accountType, 
+      }));
 
-      return enrichedTransactions;
     }),
 });
