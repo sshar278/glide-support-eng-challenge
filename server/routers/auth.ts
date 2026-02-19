@@ -7,6 +7,13 @@ import { db } from "@/lib/db";
 import { users, sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
+
+const jwtSecret = process.env.JWT_SECRET;
+
+if (!jwtSecret) {
+  throw new Error("JWT_SECRET is not set. Refusing to start server.");
+}
+
 export const authRouter = router({
   signup: publicProcedure
     .input(
@@ -59,9 +66,12 @@ export const authRouter = router({
 
 
       // Create session
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || "temporary-secret-for-interview", {
-        expiresIn: "7d",
-      });
+     const token = jwt.sign(
+  { userId: user.id },
+  jwtSecret,
+  { expiresIn: "7d" }
+);
+
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
@@ -111,10 +121,11 @@ export const authRouter = router({
       // Invalidate existing sessions for this user
       await db.delete(sessions).where(eq(sessions.userId, user.id));
 
-
-      const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || "temporary-secret-for-interview", {
-        expiresIn: "7d",
-      });
+      const token = jwt.sign(
+  { userId: user.id },
+  jwtSecret,
+  { expiresIn: "7d" }
+);
 
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);

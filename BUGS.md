@@ -276,3 +276,57 @@ Avoid repeated floating arithmetic for financial values.
 Always return the exact persisted value.
 
 Consider using integer cents or a decimal library for production-grade financial systems.
+
+
+---
+
+## SEC-305 – Hardcoded JWT Secret Fallback
+**Priority:** Critical (Authentication Security)
+
+### Reproduction
+In `server/routers/auth.ts`, JWT tokens were signed using:
+
+```ts
+process.env.JWT_SECRET || "temporary-secret-for-interview"
+If the JWT_SECRET environment variable was not set, the application would silently fall back to a hardcoded secret.
+
+Root Cause
+The authentication system allowed a predictable fallback secret string:
+
+"temporary-secret-for-interview"
+This creates a severe vulnerability:
+
+Attackers can forge valid JWT tokens.
+
+Authentication integrity is compromised.
+
+All user sessions become insecure.
+
+Fix
+Removed the fallback entirely and enforced a required environment variable.
+
+At the top of auth.ts:
+
+const jwtSecret = process.env.JWT_SECRET;
+
+if (!jwtSecret) {
+  throw new Error("JWT_SECRET is not set. Refusing to start server.");
+}
+JWT signing now strictly uses:
+
+jwt.sign({ userId: user.id }, jwtSecret, { expiresIn: "7d" });
+Verification
+If JWT_SECRET is missing → server fails to start.
+
+When JWT_SECRET is provided via .env.local, authentication works normally.
+
+No hardcoded fallback remains in codebase.
+
+Prevention
+Never use hardcoded secrets.
+
+Fail fast if required environment variables are missing.
+
+Enforce environment validation during application startup.
+
+
