@@ -2,7 +2,7 @@
 
 ---
 
-## SEC-303 – XSS Vulnerability in Transaction Description
+## 1. SEC-303 – XSS Vulnerability in Transaction Description
 **Priority:** Critical (Security)
 
 ### Reproduction Steps
@@ -28,7 +28,7 @@ with plain React text rendering:
 
 ---
 
-## SEC-301 – SSN Stored in Plaintext
+## 2. SEC-301 – SSN Stored in Plaintext
 **Priority:** Critical (Security)
 
 ### Reproduction
@@ -71,7 +71,9 @@ $2b$10$...
 
 ---
 
-## SEC-302 – Insecure Account Number Generation
+
+
+##3. SEC-302 – Insecure Account Number Generation
 **Priority:** Critical (Security)
 
 ### Reproduction
@@ -126,84 +128,9 @@ crypto.randomBytes() (Node)
 crypto.getRandomValues() (browser)
 
 
-
-
-
-# Glide Support Engineer Challenge – Bug Fix Documentation
-
 ---
 
-## SEC-303 – XSS Vulnerability in Transaction Description
-**Priority:** Critical (Security)
-
-### Reproduction Steps
-1. Insert malicious transaction:
-   `<img src=x onerror=alert("XSS")>`
-2. Refresh dashboard.
-3. Alert popup appears.
-
-### Root Cause
-`components/TransactionList.tsx` used:
-`dangerouslySetInnerHTML` to render `transaction.description`.
-
-This allows arbitrary HTML and JavaScript execution.
-
-### Fix
-Replaced:
-`dangerouslySetInnerHTML`
-with plain React text rendering:
-
-```tsx
-{transaction.description ?? "-"}
-
-
----
-
-## SEC-301 – SSN Stored in Plaintext
-**Priority:** Critical (Security)
-
-### Reproduction
-1. Sign up with SSN `111223333`.
-2. Run:
-   ```bash
-   node -e 'const Database=require("better-sqlite3"); const db=new Database("bank.db"); console.log(db.prepare("select id,email,ssn from users order by id desc limit 3").all());'
-
-Observe SSN stored as raw value (e.g., 111223333).
-
-Root Cause
-
-In server/routers/auth.ts, the entire input object (including ssn) was inserted directly into the database:
-
-await db.insert(users).values({
-  ...input,
-  password: hashedPassword,
-});
-
-
-This caused SSNs to be stored in plaintext.
-
-Fix
-
-Hash the SSN before storing:
-
-const hashedSSN = await bcrypt.hash(input.ssn, 10);
-
-await db.insert(users).values({
-  ...input,
-  password: hashedPassword,
-  ssn: hashedSSN,
-});
-
-Verification
-
-After fix, querying the database shows SSN stored as a bcrypt hash:
-
-$2b$10$...
-
-
----
-
-## SEC-304 – Multiple Active Sessions Not Invalidated
+## 4. SEC-304 – Multiple Active Sessions Not Invalidated
 **Priority:** Critical (Security)
 
 ### Reproduction
@@ -236,7 +163,8 @@ Always support server-side session invalidation
 
 ---
 
-## PERF-406 – Incorrect Balance Calculation (Floating Point Precision)
+
+## 5. PERF-406 – Incorrect Balance Calculation (Floating Point Precision)
 **Priority:** High (Financial Correctness)
 
 ### Reproduction
@@ -280,7 +208,7 @@ Consider using integer cents or a decimal library for production-grade financial
 
 ---
 
-## SEC-305 – Hardcoded JWT Secret Fallback
+## 6. SEC-305 – Hardcoded JWT Secret Fallback
 **Priority:** Critical (Authentication Security)
 
 ### Reproduction
@@ -333,7 +261,8 @@ Add this to BUGS.md:
 
 ---
 
-## PERF-401 – fundAccount Returns Incorrect Transaction
+
+## 7. PERF-401 – fundAccount Returns Incorrect Transaction
 **Priority:** High (Correctness)
 
 ### Reproduction
@@ -365,7 +294,7 @@ After fix, funding an account returns the newly created transaction (matching am
 
 ---
 
-## SEC-306 – Session Cookie Missing Secure Flag
+## 8. SEC-306 – Session Cookie Missing Secure Flag
 **Priority:** High (Security)
 
 ### Reproduction
@@ -396,7 +325,7 @@ Enforce environment-based security configuration.
 
 ---
 
-## SEC-307 – Session Cookie Missing Expires Attribute
+## 9. SEC-307 – Session Cookie Missing Expires Attribute
 **Priority:** Medium (Security / Standards Compliance)
 
 ### Reproduction
@@ -425,7 +354,7 @@ Always include both Max-Age and Expires for authentication cookies to ensure cro
 
 ---
 
-## PERF-402 – N+1 Queries in getTransactions
+## 10. PERF-407 – Performance Degradation (N+1 Queries in getTransactions)
 **Priority:** Medium (Performance)
 
 ### Reproduction
@@ -454,4 +383,30 @@ Transaction list renders correctly and the number of DB queries is reduced from 
 
 Prevention
 Avoid per-row queries inside loops. Prefer joins or fetching shared reference data once.
+
+
+
+---
+
+## 11. VAL-202 – Date of Birth Validation
+**Priority:** Critical
+
+### Reproduction
+During signup, entering a future birth year (e.g., `2025-01-01`) is accepted.
+
+### Root Cause
+`dateOfBirth` was defined as `z.string()` with no validation, allowing future dates and underage signups.
+
+### Fix
+Added validation to ensure:
+- DOB is a valid date string
+- DOB is not in the future
+- User is at least 18 years old
+
+### Verification
+- `2025-01-01` → rejected
+- Under-18 DOB → rejected
+- Valid adult DOB → accepted
+
+
 

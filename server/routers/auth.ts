@@ -34,7 +34,21 @@ export const authRouter = router({
         firstName: z.string().min(1),
         lastName: z.string().min(1),
         phoneNumber: z.string().regex(/^\+?\d{10,15}$/),
-        dateOfBirth: z.string(),
+        dateOfBirth: z
+        .string()
+        .refine((v) => !Number.isNaN(Date.parse(v)), "Invalid date of birth format")
+        .refine((v) => {
+          const dob = new Date(v);
+          const now = new Date();
+          if (dob > now) return false;
+
+        const age = now.getFullYear() - dob.getFullYear();
+        const m = now.getMonth() - dob.getMonth();
+        const d = now.getDate() - dob.getDate();
+        const isAtLeast18 = age > 18 || (age === 18 && (m > 0 || (m === 0 && d >= 0)));
+        return isAtLeast18;
+        }, "You must be at least 18 years old"),
+
         ssn: z.string().regex(/^\d{9}$/),
         address: z.string().min(1),
         city: z.string().min(1),
