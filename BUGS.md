@@ -614,7 +614,18 @@ Transaction list renders correctly and the number of DB queries is reduced from 
 Prevention
 Avoid per-row queries inside loops. Prefer joins or fetching shared reference data once.
 
-
-
-
 ---
+
+## PERF-408 – Resource Leak (Database connections remain open)
+**Priority:** Critical
+
+### Root Cause
+`lib/db/index.ts` created extra SQLite connections inside `initDb()` and stored them in a `connections[]` array without ever closing them. In dev / hot reload scenarios, this can accumulate open DB handles.
+
+### Fix
+- Removed the unused per-init `new Database(dbPath)` connection creation and `connections[]` tracking.
+- Converted SQLite initialization to a singleton (via `globalThis`) to prevent multiple connections being created during Next.js dev reloads.
+
+### Verification
+Restarted the app and confirmed DB operations still work normally, with no repeated connection creation during reload.
+

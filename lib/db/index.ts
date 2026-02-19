@@ -4,15 +4,22 @@ import * as schema from "./schema";
 
 const dbPath = "bank.db";
 
-const sqlite = new Database(dbPath);
+// Prevent DB handle leaks in Next.js dev/hot-reload by reusing a single connection.
+declare global {
+  // eslint-disable-next-line no-var
+  var __sqlite: Database.Database | undefined;
+}
+
+const sqlite = global.__sqlite ?? new Database(dbPath);
+
+// Only cache the connection globally in development (hot reload environment).
+if (process.env.NODE_ENV !== "production") {
+  global.__sqlite = sqlite;
+}
+
 export const db = drizzle(sqlite, { schema });
 
-const connections: Database.Database[] = [];
-
 export function initDb() {
-  const conn = new Database(dbPath);
-  connections.push(conn);
-
   // Create tables if they don't exist
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS users (
