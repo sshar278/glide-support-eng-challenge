@@ -24,3 +24,49 @@ with plain React text rendering:
 
 ```tsx
 {transaction.description ?? "-"}
+
+
+---
+
+## SEC-301 – SSN Stored in Plaintext
+**Priority:** Critical (Security)
+
+### Reproduction
+1. Sign up with SSN `111223333`.
+2. Run:
+   ```bash
+   node -e 'const Database=require("better-sqlite3"); const db=new Database("bank.db"); console.log(db.prepare("select id,email,ssn from users order by id desc limit 3").all());'
+
+Observe SSN stored as raw value (e.g., 111223333).
+
+Root Cause
+
+In server/routers/auth.ts, the entire input object (including ssn) was inserted directly into the database:
+
+await db.insert(users).values({
+  ...input,
+  password: hashedPassword,
+});
+
+
+This caused SSNs to be stored in plaintext.
+
+Fix
+
+Hash the SSN before storing:
+
+const hashedSSN = await bcrypt.hash(input.ssn, 10);
+
+await db.insert(users).values({
+  ...input,
+  password: hashedPassword,
+  ssn: hashedSSN,
+});
+
+Verification
+
+After fix, querying the database shows SSN stored as a bcrypt hash:
+
+$2b$10$...
+
+
