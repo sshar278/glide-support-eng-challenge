@@ -69,4 +69,63 @@ After fix, querying the database shows SSN stored as a bcrypt hash:
 
 $2b$10$...
 
+---
+
+## SEC-302 – Insecure Account Number Generation
+**Priority:** Critical (Security)
+
+### Reproduction
+1. Inspect `server/routers/account.ts`.
+2. Observe account numbers generated using:
+   ```ts
+   Math.random()
+Math.random() is not cryptographically secure and is predictable.
+
+Root Cause
+The function generateAccountNumber() used:
+
+Math.floor(Math.random() * 1000000000)
+Math.random() is not suitable for generating financial identifiers because it is:
+
+Predictable
+
+Not cryptographically secure
+
+Vulnerable to statistical attacks
+
+Fix
+Replaced Math.random() with Node's crypto.randomBytes() to generate
+a cryptographically secure random 10-digit numeric account number:
+
+import crypto from "crypto";
+
+function generateAccountNumber(): string {
+  const min = 1_000_000_000;
+  const max = 9_999_999_999;
+  const range = max - min + 1;
+
+  const buf = crypto.randomBytes(6);
+  const rand = buf.readUIntBE(0, 6);
+  const candidate = rand % range;
+
+  return String(min + candidate);
+}
+Verification
+After fix:
+
+New accounts generate 10-digit numeric account numbers
+
+No usage of Math.random() remains in account generation
+
+Prevention
+Security-sensitive identifiers must use cryptographically secure randomness.
+Always prefer:
+
+crypto.randomBytes() (Node)
+
+crypto.getRandomValues() (browser)
+
+
+
+
 
