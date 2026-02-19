@@ -120,6 +120,17 @@ export const accountRouter = router({
         });
       }
     }
+    // Bank transfers must include a valid 9-digit routing number
+    if (fs.type === "bank") {
+      if (!fs.routingNumber || !/^\d{9}$/.test(fs.routingNumber)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Routing number is required and must be 9 digits",
+          path: ["routingNumber"],
+        });
+        return;
+      }
+    }
   }),
 
       })

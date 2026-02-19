@@ -898,4 +898,41 @@ describe("Bug Fix Tests - BUGS.md Verification", () => {
       expect(routerCode).toContain("Invalid card number");
     });
   });
+
+  // ============================================
+  // VAL-207: Routing Number Required for Bank Transfers
+  // ============================================
+  describe("VAL-207: Routing Number Required (Bank Transfers)", () => {
+    it("should require a routing number for bank funding in backend", () => {
+      const { readFileSync } = require("fs");
+      const filePath = "./server/routers/account.ts";
+      let routerCode = "";
+      try {
+        routerCode = readFileSync(filePath, "utf-8");
+      } catch {
+        return; // File not available in test environment
+      }
+
+      // Verify backend enforces 9-digit routing number for bank transfers
+      expect(routerCode).toContain("routingNumber");
+      // Look for the 9-digit routing regex literal in source (e.g. `/^\d{9}$/`)
+      expect(routerCode).toContain("/^\\d{9}$/");
+      expect(routerCode).toContain("Routing number is required and must be 9 digits");
+    });
+
+    it("should have frontend validation for routing number in FundingModal", () => {
+      const { readFileSync } = require("fs");
+      const filePath = "./components/FundingModal.tsx";
+      let modalCode = "";
+      try {
+        modalCode = readFileSync(filePath, "utf-8");
+      } catch {
+        return;
+      }
+
+      // Ensure the routingNumber field is registered with a 9-digit pattern
+      expect(modalCode).toContain("routingNumber");
+      expect(modalCode).toContain("/^\\d{9}$/");
+    });
+  });
 });

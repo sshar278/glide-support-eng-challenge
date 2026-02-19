@@ -702,6 +702,35 @@ validate: {
 
 ---
 
+## 15. VAL-207 – Routing Number Required for Bank Transfers
+**Priority:** High (Financial Correctness & Compliance)
+
+### Reproduction
+1. Open Funding modal and select "Bank Account"
+2. Leave routing number blank or enter less/more than 9 digits
+3. Submit the funding request
+4. The backend accepted the request and processed the transaction without a valid routing number
+
+### Root Cause
+The backend `fundAccount` input validation did not enforce the presence and exact 9-digit format for `routingNumber` when `fundingSource.type === "bank"`. The frontend was also missing a synchronized required/format validation in some earlier iterations.
+
+### Fix
+- Backend (`server/routers/account.ts`): added `.superRefine()` logic to require `routingNumber` for bank transfers and to enforce a 9-digit numeric pattern. Emits a clear Zod issue: "Routing number is required and must be 9 digits".
+- Frontend (`components/FundingModal.tsx`): register `routingNumber` as required when `fundingType === "bank"` and validate against `/^\d{9}$/` with clear error messages.
+
+### Verification
+✅ Backend rejects missing or malformed routing numbers for bank funding
+✅ Frontend shows immediate validation errors when routing number is omitted or incorrect
+✅ Tests added to `tests/bugfixes.test.ts` to assert both backend code contains the validation and the frontend registers the required pattern
+
+### Prevention
+- Always enforce bank routing numbers as required for ACH-style transfers
+- Use exact 9-digit numeric validation for US routing numbers at input and schema level
+- Keep frontend and backend validation messages aligned and descriptive
+- Add unit tests for validation presence and format
+
+
+
 ## 15. VAL-208 – Weak Password Requirements
 **Priority:** Critical
 
