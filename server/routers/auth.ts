@@ -6,23 +6,14 @@ import { publicProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 import { users, sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { buildSessionCookie } from "@/lib/authCookie";
+import { hashSSN } from "@/lib/validators";
 
 
 const jwtSecret = process.env.JWT_SECRET;
 
 if (!jwtSecret) {
   throw new Error("JWT_SECRET is not set. Refusing to start server.");
-}
-
-/**
- * Builds session cookie string with conditional Secure flag for production.
- * @param token Session token value
- * @param maxAge Max-Age in seconds (omit or 0 for logout)
- */
-function buildSessionCookie(token: string, maxAge: number = 604800): string {
-  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  const expiresDate = new Date(Date.now() + maxAge * 1000).toUTCString();
-  return `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}; Expires=${expiresDate}${secure}`;
 }
 
 export const authRouter = router({
