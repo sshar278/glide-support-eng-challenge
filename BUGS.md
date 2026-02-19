@@ -201,3 +201,35 @@ After fix, querying the database shows SSN stored as a bcrypt hash:
 $2b$10$...
 
 
+---
+
+## SEC-304 – Multiple Active Sessions Not Invalidated
+**Priority:** Critical (Security)
+
+### Reproduction
+1. Log in as a user in a normal window.
+2. Log in as the same user in an incognito/private window.
+3. Run:
+   ```bash
+   npm run db:list-sessions
+Observe multiple ACTIVE sessions for the same user.
+
+Root Cause
+In server/routers/auth.ts, both signup and login create a new session token but do not invalidate existing sessions for the user, allowing multiple valid sessions simultaneously.
+
+Fix
+Before inserting a new session, delete existing sessions for the user:
+
+await db.delete(sessions).where(eq(sessions.userId, user.id));
+Applied in both signup and login.
+
+Verification
+After fix, repeating the reproduction steps results in only one ACTIVE session per user in db:list-sessions.
+
+Prevention
+Enforce a clear session policy (single-session vs multi-session)
+
+If multi-session is desired, require device metadata + session revocation UI
+
+Always support server-side session invalidation
+

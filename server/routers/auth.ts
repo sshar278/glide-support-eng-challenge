@@ -54,6 +54,10 @@ export const authRouter = router({
         });
       }
 
+      // Invalidate existing sessions for this user
+      await db.delete(sessions).where(eq(sessions.userId, user.id));
+
+
       // Create session
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || "temporary-secret-for-interview", {
         expiresIn: "7d",
@@ -103,6 +107,10 @@ export const authRouter = router({
           message: "Invalid credentials",
         });
       }
+
+      // Invalidate existing sessions for this user
+      await db.delete(sessions).where(eq(sessions.userId, user.id));
+
 
       const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET || "temporary-secret-for-interview", {
         expiresIn: "7d",
