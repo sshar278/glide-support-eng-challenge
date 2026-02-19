@@ -14,6 +14,16 @@ if (!jwtSecret) {
   throw new Error("JWT_SECRET is not set. Refusing to start server.");
 }
 
+/**
+ * Builds session cookie string with conditional Secure flag for production.
+ * @param token Session token value
+ * @param maxAge Max-Age in seconds (omit or 0 for logout)
+ */
+function buildSessionCookie(token: string, maxAge: number = 604800): string {
+  const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`;
+}
+
 export const authRouter = router({
   signup: publicProcedure
     .input(
@@ -83,10 +93,11 @@ export const authRouter = router({
       });
 
       // Set cookie
+      const cookie = buildSessionCookie(token);
       if ("setHeader" in ctx.res) {
-        ctx.res.setHeader("Set-Cookie", `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800`);
+        ctx.res.setHeader("Set-Cookie", cookie);
       } else {
-        (ctx.res as Headers).set("Set-Cookie", `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800`);
+        (ctx.res as Headers).set("Set-Cookie", cookie);
       }
 
       return { user: { ...user, password: undefined }, token };
@@ -137,9 +148,11 @@ export const authRouter = router({
       });
 
       if ("setHeader" in ctx.res) {
-        ctx.res.setHeader("Set-Cookie", `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800`);
+        const cookie = buildSessionCookie(token);
+        ctx.res.setHeader("Set-Cookie", cookie);
       } else {
-        (ctx.res as Headers).set("Set-Cookie", `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800`);
+        const cookie = buildSessionCookie(token);
+        (ctx.res as Headers).set("Set-Cookie", cookie);
       }
 
       return { user: { ...user, password: undefined }, token };
@@ -164,9 +177,11 @@ export const authRouter = router({
     }
 
     if ("setHeader" in ctx.res) {
-      ctx.res.setHeader("Set-Cookie", `session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`);
+      const cookie = buildSessionCookie("", 0);
+      ctx.res.setHeader("Set-Cookie", cookie);
     } else {
-      (ctx.res as Headers).set("Set-Cookie", `session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`);
+      const cookie = buildSessionCookie("", 0);
+      (ctx.res as Headers).set("Set-Cookie", cookie);
     }
 
     return { success: true, message: ctx.user ? "Logged out successfully" : "No active session" };

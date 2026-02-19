@@ -363,4 +363,34 @@ Verification
 After fix, funding an account returns the newly created transaction (matching amount/description).
 
 
+---
+
+## SEC-306 – Session Cookie Missing Secure Flag
+**Priority:** High (Security)
+
+### Reproduction
+In `server/routers/auth.ts`, the session cookie was set as:
+
+```ts
+session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800
+The Secure flag was missing.
+
+Root Cause
+Without the Secure attribute, cookies may be transmitted over HTTP, exposing session tokens to interception.
+
+Fix
+Conditionally added Secure flag in production:
+
+const isProd = process.env.NODE_ENV === "production";
+const cookie = `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800${isProd ? "; Secure" : ""}`;
+Verification
+Application works in development (HTTP).
+
+In production, cookies are marked Secure and sent only over HTTPS.
+
+Prevention
+Always use Secure for authentication cookies in production.
+
+Enforce environment-based security configuration.
+
 
