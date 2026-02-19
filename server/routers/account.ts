@@ -4,12 +4,24 @@ import { protectedProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 import { accounts, transactions } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import crypto from "crypto";
 
 function generateAccountNumber(): string {
-  return Math.floor(Math.random() * 1000000000)
-    .toString()
-    .padStart(10, "0");
+  // 10-digit numeric account number using cryptographically secure RNG
+  // Avoid modulo bias by using a large random integer space.
+  const min = 1_000_000_000;  // 10 digits, no leading zero
+  const max = 9_999_999_999;  // 10 digits
+  const range = max - min + 1;
+
+  // Use 48 bits of randomness (~2.8e14) which is plenty for this range
+  while (true) {
+    const buf = crypto.randomBytes(6); // 48 bits
+    const rand = buf.readUIntBE(0, 6); // 0 .. 2^48-1
+    const candidate = rand % range;    // tiny modulo bias is negligible here; acceptable for this challenge
+    return String(min + candidate);
+  }
 }
+
 
 export const accountRouter = router({
   createAccount: protectedProcedure
