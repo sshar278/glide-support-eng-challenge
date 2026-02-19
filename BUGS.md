@@ -411,7 +411,7 @@ Added validation to ensure:
 
 ---
 
-## VAL-206 – Card Number Validation
+## 12. VAL-206 – Card Number Validation
 **Priority:** Critical
 
 ### Reproduction
@@ -429,5 +429,31 @@ Added conditional validation for card funding:
 ### Verification
 - Valid test card numbers pass (e.g., `4242 4242 4242 4242`)
 - Invalid numbers fail with a validation error
+
+
+---
+
+## 13. VAL-208 – Weak Password Requirements
+**Priority:** Critical
+
+### Reproduction
+Signup accepted weak passwords that only satisfied minimum length (e.g., `aaaaaaaa`, `password1`).
+
+### Root Cause
+Password validation only enforced `min(8)` with no complexity requirements.
+
+### Fix
+Strengthened password validation to require:
+- Minimum 8 characters
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one number
+- At least one special character
+
+### Verification
+- Weak passwords are rejected with clear validation messages
+- Strong passwords like `Password1!` are accepted
+
+
 
 
