@@ -135,11 +135,10 @@ export default function SignupPage() {
                       message: "Password must be at least 8 characters",
                     },
                     validate: {
-                      notCommon: (value) => {
-                        const commonPasswords = ["password", "12345678", "qwerty"];
-                        return !commonPasswords.includes(value.toLowerCase()) || "Password is too common";
-                      },
-                      hasNumber: (value) => /\d/.test(value) || "Password must contain a number",
+                      hasLowercase: (value) => /[a-z]/.test(value) || "Password must include a lowercase letter",
+                      hasUppercase: (value) => /[A-Z]/.test(value) || "Password must include an uppercase letter",
+                      hasNumber: (value) => /\d/.test(value) || "Password must include a number",
+                      hasSpecial: (value) => /[^A-Za-z0-9]/.test(value) || "Password must include a special character",
                     },
                   })}
                   type="password"

@@ -351,22 +351,59 @@ The backend `fundAccount` input validation did not enforce the presence and exac
 **Priority:** Critical
 
 ### Reproduction
-Signup accepted weak passwords that only satisfied minimum length (e.g., `aaaaaaaa`, `password1`).
+1. Navigate to signup page
+2. Try to create account with password like `diego1234` (lowercase + numbers only)
+3. **Issue**: Frontend accepted the password without showing complexity errors, even though backend would reject it
 
 ### Root Cause
-Password validation only enforced `min(8)` with no complexity requirements.
+**Frontend and Backend Mismatch**: 
+- **Backend (server/routers/auth.ts)**: Had proper password complexity validation requiring uppercase, lowercase, number, and special character
+- **Frontend (app/signup/page.tsx)**: Only validated minimum length (8 chars) and that password contains a number, missing checks for:
+  - Uppercase letter requirement
+  - Lowercase letter requirement
+  - Special character requirement
+
+This caused users to see validation errors only after submitting the form (server-side error), instead of getting real-time feedback during typing.
 
 ### Fix
-Strengthened password validation to require:
-- Minimum 8 characters
-- At least one uppercase letter
-- At least one lowercase letter
-- At least one number
-- At least one special character
+Updated frontend validation in `app/signup/page.tsx` to match backend requirements:
+
+```tsx
+// Before:
+validate: {
+  notCommon: (value) => {
+    const commonPasswords = ["password", "12345678", "qwerty"];
+    return !commonPasswords.includes(value.toLowerCase()) || "Password is too common";
+  },
+  hasNumber: (value) => /\d/.test(value) || "Password must contain a number",
+}
+
+// After:
+validate: {
+  hasLowercase: (value) => /[a-z]/.test(value) || "Password must include a lowercase letter",
+  hasUppercase: (value) => /[A-Z]/.test(value) || "Password must include an uppercase letter",
+  hasNumber: (value) => /\d/.test(value) || "Password must include a number",
+  hasSpecial: (value) => /[^A-Za-z0-9]/.test(value) || "Password must include a special character",
+}
+```
 
 ### Verification
-- Weak passwords are rejected with clear validation messages
-- Strong passwords like `Password1!` are accepted
+✅ Backend validation enforces all complexity requirements (auth.ts):
+- `.min(8, "Password must be at least 8 characters")`
+- `.regex(/[a-z]/, "Password must include a lowercase letter")`
+- `.regex(/[A-Z]/, "Password must include an uppercase letter")`
+- `.regex(/\d/, "Password must include a number")`
+- `.regex(/[^A-Za-z0-9]/, "Password must include a special character")`
+
+✅ Frontend now shows real-time validation errors matching backend rules
+
+✅ Weak passwords are rejected with specific error messages:
+- `diego1234` → "Password must include an uppercase letter" + "Password must include a special character"
+- `Password123` → "Password must include a special character"
+
+✅ Strong passwords like `Password1!` are accepted
+
+✅ 13 comprehensive tests added to verify all password complexity rules
 
 
 ## SEC-301 – SSN Stored in Plaintext

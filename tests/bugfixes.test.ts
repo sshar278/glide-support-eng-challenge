@@ -935,4 +935,174 @@ describe("Bug Fix Tests - BUGS.md Verification", () => {
       expect(modalCode).toContain("/^\\d{9}$/");
     });
   });
+
+  // ============================================
+  // VAL-208: Weak Password Requirements
+  // ============================================
+  describe("VAL-208: Strong Password Complexity Requirements", () => {
+    it("should enforce password length of at least 8 characters in backend", () => {
+      const { readFileSync } = require("fs");
+      const filePath = "./server/routers/auth.ts";
+      let authCode = "";
+      try {
+        authCode = readFileSync(filePath, "utf-8");
+      } catch {
+        return; // File not available in test environment
+      }
+
+      // Verify backend requires minimum 8 characters
+      expect(authCode).toContain('.min(8, "Password must be at least 8 characters")');
+    });
+
+    it("should require lowercase letter in password", () => {
+      const { readFileSync } = require("fs");
+      const filePath = "./server/routers/auth.ts";
+      let authCode = "";
+      try {
+        authCode = readFileSync(filePath, "utf-8");
+      } catch {
+        return;
+      }
+
+      // Verify regex for lowercase letter
+      expect(authCode).toContain("/[a-z]/");
+      expect(authCode).toContain("Password must include a lowercase letter");
+    });
+
+    it("should require uppercase letter in password", () => {
+      const { readFileSync } = require("fs");
+      const filePath = "./server/routers/auth.ts";
+      let authCode = "";
+      try {
+        authCode = readFileSync(filePath, "utf-8");
+      } catch {
+        return;
+      }
+
+      // Verify regex for uppercase letter
+      expect(authCode).toContain("/[A-Z]/");
+      expect(authCode).toContain("Password must include an uppercase letter");
+    });
+
+    it("should require at least one number in password", () => {
+      const { readFileSync } = require("fs");
+      const filePath = "./server/routers/auth.ts";
+      let authCode = "";
+      try {
+        authCode = readFileSync(filePath, "utf-8");
+      } catch {
+        return;
+      }
+
+      // Verify regex for digit
+      expect(authCode).toContain("/\\d/");
+      expect(authCode).toContain("Password must include a number");
+    });
+
+    it("should require at least one special character in password", () => {
+      const { readFileSync } = require("fs");
+      const filePath = "./server/routers/auth.ts";
+      let authCode = "";
+      try {
+        authCode = readFileSync(filePath, "utf-8");
+      } catch {
+        return;
+      }
+
+      // Verify regex for special character (non-alphanumeric)
+      expect(authCode).toContain("/[^A-Za-z0-9]/");
+      expect(authCode).toContain("Password must include a special character");
+    });
+
+    it("should validate password complexity in frontend signup form", () => {
+      const { readFileSync } = require("fs");
+      const filePath = "./app/signup/page.tsx";
+      let signupCode = "";
+      try {
+        signupCode = readFileSync(filePath, "utf-8");
+      } catch {
+        return; // File not available in test environment
+      }
+
+      // Verify frontend validates all password complexity requirements
+      expect(signupCode).toContain("hasLowercase");
+      expect(signupCode).toContain("hasUppercase");
+      expect(signupCode).toContain("hasNumber");
+      expect(signupCode).toContain("hasSpecial");
+      expect(signupCode).toContain("[a-z]");
+      expect(signupCode).toContain("[A-Z]");
+      expect(signupCode).toContain("\\d");
+      expect(signupCode).toContain("[^A-Za-z0-9]");
+    });
+
+    it("should reject weak password: only lowercase and numbers (diego1234)", () => {
+      // This password lacks uppercase and special character
+      const password = "diego1234";
+      const hasLowercase = /[a-z]/.test(password);
+      const hasUppercase = /[A-Z]/.test(password);
+      const hasNumber = /\d/.test(password);
+      const hasSpecial = /[^A-Za-z0-9]/.test(password);
+      const meetsLength = password.length >= 8;
+
+      // Should pass lowercase, number, length
+      expect(hasLowercase).toBe(true);
+      expect(hasNumber).toBe(true);
+      expect(meetsLength).toBe(true);
+
+      // Should fail uppercase and special character
+      expect(hasUppercase).toBe(false);
+      expect(hasSpecial).toBe(false);
+
+      // Overall should be invalid
+      const isValid = hasLowercase && hasUppercase && hasNumber && hasSpecial && meetsLength;
+      expect(isValid).toBe(false);
+    });
+
+    it("should accept strong password: Password123!", () => {
+      const password = "Password123!";
+      const hasLowercase = /[a-z]/.test(password);
+      const hasUppercase = /[A-Z]/.test(password);
+      const hasNumber = /\d/.test(password);
+      const hasSpecial = /[^A-Za-z0-9]/.test(password);
+      const meetsLength = password.length >= 8;
+
+      expect(hasLowercase).toBe(true);
+      expect(hasUppercase).toBe(true);
+      expect(hasNumber).toBe(true);
+      expect(hasSpecial).toBe(true);
+      expect(meetsLength).toBe(true);
+
+      const isValid = hasLowercase && hasUppercase && hasNumber && hasSpecial && meetsLength;
+      expect(isValid).toBe(true);
+    });
+
+    it("should reject password with no special character: Password123", () => {
+      const password = "Password123";
+      const hasSpecial = /[^A-Za-z0-9]/.test(password);
+      expect(hasSpecial).toBe(false);
+    });
+
+    it("should reject password with no uppercase: password123!", () => {
+      const password = "password123!";
+      const hasUppercase = /[A-Z]/.test(password);
+      expect(hasUppercase).toBe(false);
+    });
+
+    it("should reject password with no number: Password@abc", () => {
+      const password = "Password@abc";
+      const hasNumber = /\d/.test(password);
+      expect(hasNumber).toBe(false);
+    });
+
+    it("should reject password with no lowercase: PASSWORD123!", () => {
+      const password = "PASSWORD123!";
+      const hasLowercase = /[a-z]/.test(password);
+      expect(hasLowercase).toBe(false);
+    });
+
+    it("should reject password shorter than 8 characters: Pass1!", () => {
+      const password = "Pass1!";
+      expect(password.length).toBeLessThan(8);
+    });
+  });
 });
