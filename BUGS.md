@@ -329,4 +329,38 @@ Fail fast if required environment variables are missing.
 
 Enforce environment validation during application startup.
 
+Add this to BUGS.md:
+
+---
+
+## PERF-401 – fundAccount Returns Incorrect Transaction
+**Priority:** High (Correctness)
+
+### Reproduction
+1. Fund an account.
+2. The API returns a transaction object that does not correspond to the funding action.
+3. In `server/routers/account.ts`, the code fetched:
+   ```ts
+   orderBy(transactions.createdAt).limit(1)
+
+
+which returns the oldest transaction in the table.
+
+Root Cause
+
+After inserting a new transaction, fundAccount selected the wrong row by querying the global transactions table without filtering by account and ordering ascending.
+
+Fix
+
+Fetch the most recent transaction for the funded account:
+
+.where(eq(transactions.accountId, input.accountId))
+.orderBy(desc(transactions.createdAt))
+.limit(1)
+
+Verification
+
+After fix, funding an account returns the newly created transaction (matching amount/description).
+
+
 

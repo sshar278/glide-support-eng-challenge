@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 import { accounts, transactions } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import crypto from "crypto";
 
 function generateAccountNumber(): string {
@@ -132,7 +132,13 @@ export const accountRouter = router({
       });
 
       // Fetch the created transaction
-      const transaction = await db.select().from(transactions).orderBy(transactions.createdAt).limit(1).get();
+      const transaction = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.accountId, input.accountId))
+      .orderBy(desc(transactions.createdAt))
+      .limit(1)
+      .get();
 
       // Update account balance
       await db
