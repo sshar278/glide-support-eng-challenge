@@ -6,6 +6,28 @@ import { accounts, transactions } from "@/lib/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import crypto from "crypto";
 
+function isValidLuhn(cardNumber: string): boolean {
+  let sum = 0;
+  let shouldDouble = false;
+
+  for (let i = cardNumber.length - 1; i >= 0; i--) {
+    const digit = Number(cardNumber[i]);
+    if (Number.isNaN(digit)) return false;
+
+    let add = digit;
+    if (shouldDouble) {
+      add = digit * 2;
+      if (add > 9) add -= 9;
+    }
+
+    sum += add;
+    shouldDouble = !shouldDouble;
+  }
+
+  return sum % 10 === 0;
+}
+
+
 function generateAccountNumber(): string {
   // 10-digit numeric account number using cryptographically secure RNG
   // Avoid modulo bias by using a large random integer space.
@@ -90,11 +112,33 @@ export const accountRouter = router({
       z.object({
         accountId: z.number(),
         amount: z.number().positive(),
-        fundingSource: z.object({
-          type: z.enum(["card", "bank"]),
-          accountNumber: z.string(),
-          routingNumber: z.string().optional(),
-        }),
+        fundingSource: z
+  .object({
+    type: z.enum(["card", "bank"]),
+    accountNumber: z.string(),
+    routingNumber: z.string().optional(),
+  })
+  .superRefine((fs, ctx) => {
+    if (fs.type === "card") {
+      const digitsOnly = fs.accountNumber.replace(/\s|-/g, "");
+      if (!/^\d{13,19}$/.test(digitsOnly)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Invalid card number format",
+          path: ["accountNumber"],
+        });
+        return;
+      }
+      if (!isValidLuhn(digitsOnly)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Invalid card number",
+          path: ["accountNumber"],
+        });
+      }
+    }
+  }),
+
       })
     )
     .mutation(async ({ input, ctx }) => {

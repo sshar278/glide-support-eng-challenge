@@ -409,4 +409,25 @@ Added validation to ensure:
 - Valid adult DOB → accepted
 
 
+---
+
+## VAL-206 – Card Number Validation
+**Priority:** Critical
+
+### Reproduction
+Funding requests with `fundingSource.type="card"` accepted invalid card numbers (any string / digits).
+
+### Root Cause
+`fundingSource.accountNumber` was unvalidated (`z.string()`), and no Luhn/length checks were applied for card funding.
+
+### Fix
+Added conditional validation for card funding:
+- Strip spaces/hyphens
+- Require digits-only and length 13–19
+- Validate using Luhn checksum
+
+### Verification
+- Valid test card numbers pass (e.g., `4242 4242 4242 4242`)
+- Invalid numbers fail with a validation error
+
 
