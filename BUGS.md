@@ -2,6 +2,57 @@
 
 ---
 
+## UI-101 – Dark Mode Text Visibility (Input Fields)
+**Priority:** Medium (UI/UX)
+
+### Reproduction Steps
+1. Enable dark mode on the browser (Settings > Display > Dark Mode)
+2. Navigate to signup, login, or funding pages
+3. Try typing in any input field
+4. Text input appears white on white background, invisible
+
+### Root Cause
+Input elements throughout the application lacked Tailwind dark mode variants:
+- No `dark:bg-gray-800` for background in dark mode
+- No `dark:text-white` for text color in dark mode
+- No `dark:border-gray-600` for border styling in dark mode
+
+The inputs used only light mode classes like `border-gray-300` and `bg-white`, which in dark mode resulted in white text on white background.
+
+### Fix
+Added comprehensive dark mode support using Tailwind's `dark:` variants to all input elements:
+
+```tsx
+// Before:
+className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
+
+// After:
+className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
+```
+
+Applied dark mode support to:
+- **Forms:** Signup page (all steps), Login page
+- **Modals:** AccountCreationModal, FundingModal
+- **Input types:** text, email, password, tel, date
+- **Modal backgrounds:** Added `dark:bg-gray-800` to modal containers
+- **Labels:** Added `dark:text-gray-300` to form labels
+
+### Verification
+✅ All input fields now have dark background in dark mode  
+✅ Text is white on dark background, clearly visible  
+✅ Borders use darker gray shade for contrast  
+✅ Placeholders are visible in dark mode  
+✅ Modal containers have dark background  
+✅ Labels are readable in dark mode
+
+### Prevention
+- Always include dark mode variants when building forms
+- Use Tailwind's `dark:` prefix for all interactive elements
+- Test dark mode during development, not just at end
+- Include these dark mode classes in default form component styles
+
+---
+
 ## 1. SEC-303 – XSS Vulnerability in Transaction Description
 **Priority:** Critical (Security)
 

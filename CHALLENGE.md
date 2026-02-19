@@ -77,7 +77,7 @@ Below are customer-reported issues in ticket format. Each requires investigation
 
 ### UI Issues
 
-**Ticket UI-101: Dark Mode Text Visibility**
+**Ticket UI-101: Dark Mode Text Visibility** (done)
 
 - **Reporter**: Sarah Chen
 - **Priority**: Medium
@@ -100,7 +100,7 @@ Below are customer-reported issues in ticket format. Each requires investigation
   - Accepts "TEST@example.com" but converts to lowercase without notifying user
   - No validation for common typos like ".con" instead of ".com"
 
-**Ticket VAL-202: Date of Birth Validation**
+**Ticket VAL-202: Date of Birth Validation** (done)
 
 - **Reporter**: Maria Garcia
 - **Priority**: Critical
