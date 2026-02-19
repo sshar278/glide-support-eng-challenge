@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { users, sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { buildSessionCookie } from "@/lib/authCookie";
-import { hashSSN } from "@/lib/validators";
+import { hashSSN, validateEmail } from "@/lib/validators";
 
 
 const jwtSecret = process.env.JWT_SECRET;
@@ -20,7 +20,15 @@ export const authRouter = router({
   signup: publicProcedure
     .input(
       z.object({
-        email: z.string().email().toLowerCase(),
+        email: z
+          .string()
+          .refine(
+            (email) => validateEmail(email.toLowerCase()).valid,
+            (email) => ({
+              message: validateEmail(email).error || "Invalid email",
+            })
+          )
+          .transform((email) => email.toLowerCase()),
         password: z
               .string()
               .min(8, "Password must be at least 8 characters")
@@ -118,7 +126,15 @@ export const authRouter = router({
   login: publicProcedure
     .input(
       z.object({
-        email: z.string().email(),
+        email: z
+          .string()
+          .refine(
+            (email) => validateEmail(email.toLowerCase()).valid,
+            (email) => ({
+              message: validateEmail(email).error || "Invalid email",
+            })
+          )
+          .transform((email) => email.toLowerCase()),
         password: z.string(),
       })
     )

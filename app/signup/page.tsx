@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { trpc } from "@/lib/trpc/client";
+import { validateEmail } from "@/lib/validators";
 import Link from "next/link";
+
 
 type SignupFormData = {
   email: string;
@@ -25,6 +27,7 @@ export default function SignupPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
+  const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
 
   const {
     register,
@@ -32,6 +35,7 @@ export default function SignupPage() {
     formState: { errors },
     watch,
     trigger,
+    setValue,
   } = useForm<SignupFormData>();
   const signupMutation = trpc.auth.signup.useMutation();
 
@@ -53,6 +57,11 @@ export default function SignupPage() {
   };
 
   const prevStep = () => setStep(step - 1);
+
+  const acceptEmailSuggestion = (suggestion: string) => {
+    setValue("email", suggestion);
+    setEmailSuggestion(null);
+  };
 
   const onSubmit = async (data: SignupFormData) => {
     try {
@@ -82,15 +91,36 @@ export default function SignupPage() {
                 <input
                   {...register("email", {
                     required: "Email is required",
-                    pattern: {
-                      value: /^\S+@\S+$/i,
-                      message: "Invalid email address",
+                    validate: (value) => {
+                      const validation = validateEmail(value);
+                      if (!validation.valid) {
+                        if (validation.suggestion) {
+                          setEmailSuggestion(validation.suggestion);
+                        }
+                        return validation.error || "Invalid email";
+                      }
+                      setEmailSuggestion(null);
+                      return true;
                     },
                   })}
-                  type="email"
+                  type="text"
+                  placeholder="you@example.com"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                 />
-                {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+                {errors.email && (
+                  <div>
+                    <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+                    {emailSuggestion && (
+                      <button
+                        type="button"
+                        onClick={() => acceptEmailSuggestion(emailSuggestion)}
+                        className="mt-2 text-sm text-blue-600 hover:text-blue-700 underline"
+                      >
+                        Use suggested email: {emailSuggestion}
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>

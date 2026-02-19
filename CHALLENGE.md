@@ -91,7 +91,7 @@ Below are customer-reported issues in ticket format. Each requires investigation
 
 ### Validation Issues
 
-**Ticket VAL-201: Email Validation Problems**
+**Ticket VAL-201: Email Validation Problems** (done)
 
 - **Reporter**: James Wilson
 - **Priority**: High

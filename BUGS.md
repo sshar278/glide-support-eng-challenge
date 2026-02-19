@@ -439,7 +439,83 @@ Avoid per-row queries inside loops. Prefer joins or fetching shared reference da
 
 ---
 
-## 11. VAL-202 – Date of Birth Validation
+## 11. VAL-201 – Email Validation Problems
+**Priority:** High (Data Quality & UX)
+
+### Reproduction
+1. Signup with `TEST@example.com` (uppercase letters) → silently accepted and lowercased
+2. Signup with `user@gmai.com` (typo) → incorrectly accepted
+3. Signup with `user@example.con` (TLD typo) → incorrectly accepted
+4. No validation error shown for uppercase emails
+
+### Root Cause
+**Frontend:** Email validation used overly permissive regex `/^\S+@\S+$/i` which accepts anything with an @ symbol (no domain extension check).
+
+**Backend:** Zod schema used `.email().toLowerCase()` which validated the email correctly but silently converted uppercase to lowercase without user notification.
+
+**Missing:** No detection for common domain typos (`.gmial.com` → `.gmail.com`) or TLD typos (`.con` → `.com`).
+
+### Fix
+Created comprehensive `validateEmail()` utility in `lib/validators.ts` with:
+
+1. **Uppercase detection:** Rejects uppercase letters and suggests lowercase version
+   ```ts
+   if (email !== email.toLowerCase()) {
+     return {
+       valid: false,
+       error: "Email contains uppercase letters. Please use lowercase.",
+       suggestion: email.toLowerCase(),
+     };
+   }
+   ```
+
+2. **Common domain typo detection:** Maps known typos to correct domains
+   ```ts
+   const typos = {
+     "gmai.com": "gmail.com",
+     "gmial.com": "gmail.com",
+     "hotmial.com": "hotmail.com",
+     "yahooo.com": "yahoo.com",
+     "aol.con": "aol.com",
+   };
+   ```
+
+3. **TLD typo detection:** Catches `.con` → `.com` mistakes
+   ```ts
+   if (tld === "con") {
+     suggestion: email.replace(".con", ".com");
+   }
+   ```
+
+4. **Format validation:** Strict character validation for local part and domain labels
+
+**Applied to:**
+- `app/signup/page.tsx` - Step 1 email input with suggestion UI
+- `app/login/page.tsx` - Email input with suggestion acceptance button
+- `server/routers/auth.ts` - Both signup and login endpoints use `validateEmail()` in Zod schema
+
+**Frontend UX Improvement:**
+Users see a clickable suggestion button: "Use suggested email: test@example.com" when typos are detected.
+
+### Verification
+✅ Uppercase emails rejected with suggestion (TEST@example.com → test@example.com)  
+✅ Common domain typos detected (gmai.com → gmail.com, hotmial.com → hotmail.com)  
+✅ TLD typos detected (.con → .com)  
+✅ Valid emails accepted (user@example.com, john.doe@company.org, name+tag@domain.co.uk)  
+✅ No silent lowercasing - users see explicit error messages  
+✅ Suggestion UI provides quick fix button on frontend  
+✅ 44 comprehensive unit tests covering all scenarios  
+
+### Prevention
+- Always validate email format with proper domain/TLD checks
+- Never silently transform user input (lowercase, trim, etc.) without notification
+- Include common typo detection especially for popular email providers
+- Provide actionable suggestions when validation fails
+- Test both frontend pattern validation and backend schema validation
+
+---
+
+## 12. VAL-202 – Date of Birth Validation
 **Priority:** Critical
 
 ### Reproduction
@@ -462,7 +538,7 @@ Added validation to ensure:
 
 ---
 
-## 12. VAL-206 – Card Number Validation
+## 13. VAL-206 – Card Number Validation
 **Priority:** Critical
 
 ### Reproduction
@@ -484,7 +560,7 @@ Added conditional validation for card funding:
 
 ---
 
-## 13. VAL-208 – Weak Password Requirements
+## 14. VAL-208 – Weak Password Requirements
 **Priority:** Critical
 
 ### Reproduction

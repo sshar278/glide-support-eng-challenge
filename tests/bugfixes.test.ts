@@ -5,6 +5,7 @@ import {
   verifySSN,
   isValidAccountNumber,
   createSessionInvalidationPlan,
+  validateEmail,
 } from "../lib/validators";
 import { buildSessionCookie } from "../lib/authCookie";
 
@@ -382,6 +383,186 @@ describe("Bug Fix Tests - BUGS.md Verification", () => {
 
       // Should use .map() for enrichment
       expect(routerCode).toContain("accountTransactions.map");
+    });
+  });
+
+  // ============================================
+  // VAL-201: Email Validation Problems
+  // ============================================
+  describe("VAL-201: Email Validation (Enhanced Format & Typo Detection)", () => {
+    /**
+     * Valid email addresses that should be accepted
+     */
+    it("should accept valid email addresses", () => {
+      const validEmails = [
+        "user@example.com",
+        "john.doe@company.org",
+        "name+tag@domain.co.uk",
+        "first_last@sub.domain.com",
+        "test123@test.co",
+      ];
+
+      validEmails.forEach((email) => {
+        const result = validateEmail(email);
+        expect(result.valid).toBe(true);
+        expect(result.error).toBeUndefined();
+      });
+    });
+
+    /**
+     * Reject uppercase letters - user must use lowercase
+     */
+    it("should reject uppercase letters and suggest lowercase", () => {
+      const result = validateEmail("TEST@example.com");
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("uppercase");
+      expect(result.suggestion).toBe("test@example.com");
+    });
+
+    it("should reject mixed case emails", () => {
+      const result = validateEmail("John.Doe@example.com");
+      expect(result.valid).toBe(false);
+      expect(result.suggestion).toBe("john.doe@example.com");
+    });
+
+    /**
+     * Detect common domain typos
+     */
+    it("should detect gmial.com typo and suggest gmail.com", () => {
+      const result = validateEmail("user@gmial.com");
+      expect(result.valid).toBe(false);
+      expect(result.suggestion).toBe("user@gmail.com");
+      expect(result.error).toContain("gmail");
+    });
+
+    it("should detect gmai.con typo (both domain and TLD)", () => {
+      const result = validateEmail("user@gmai.con");
+      expect(result.valid).toBe(false);
+      expect(result.suggestion).toBe("user@gmail.com");
+    });
+
+    it("should detect hotmial.com typo and suggest hotmail.com", () => {
+      const result = validateEmail("test@hotmial.com");
+      expect(result.valid).toBe(false);
+      expect(result.suggestion).toBe("test@hotmail.com");
+    });
+
+    it("should detect yahoo.con typo and suggest yahoo.com", () => {
+      const result = validateEmail("name@yahooo.com");
+      expect(result.valid).toBe(false);
+      expect(result.suggestion).toContain("yahoo.com");
+    });
+
+    /**
+     * Detect TLD typos (common mistakes like .con instead of .com)
+     */
+    it("should reject .con TLD and suggest .com", () => {
+      const result = validateEmail("user@example.con");
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain(".com");
+      expect(result.suggestion).toBe("user@example.com");
+    });
+
+    it("should reject emails missing domain extension", () => {
+      const result = validateEmail("user@example");
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("extension");
+    });
+
+    /**
+     * Reject obviously invalid formats
+     */
+    it("should reject email missing @ symbol", () => {
+      const result = validateEmail("userexample.com");
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("@");
+    });
+
+    it("should reject email with nothing before @", () => {
+      const result = validateEmail("@example.com");
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("before");
+    });
+
+    it("should reject email with nothing after @", () => {
+      const result = validateEmail("user@");
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("domain");
+    });
+
+    it("should reject email with spaces", () => {
+      const result = validateEmail("user @example.com");
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("space");
+    });
+
+    it("should reject email with consecutive dots in domain", () => {
+      const result = validateEmail("user@exam..ple.com");
+      expect(result.valid).toBe(false);
+    });
+
+    /**
+     * Validate local part (before @)
+     */
+    it("should reject local part over 64 characters", () => {
+      const longLocal = "a".repeat(65);
+      const result = validateEmail(`${longLocal}@example.com`);
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("too long");
+    });
+
+    it("should accept valid special characters in local part", () => {
+      const validSpecialChars = [
+        "user+tag@example.com",
+        "first.last@example.com",
+        "user_name@example.com",
+        "user-name@example.com",
+      ];
+      validSpecialChars.forEach((email) => {
+        const result = validateEmail(email);
+        expect(result.valid).toBe(true);
+      });
+    });
+
+    /**
+     * Validate domain format
+     */
+    it("should reject domain with invalid characters", () => {
+      const result = validateEmail("user@exam ple@.com");
+      expect(result.valid).toBe(false);
+    });
+
+    it("should reject domain starting with hyphen", () => {
+      const result = validateEmail("user@-example.com");
+      expect(result.valid).toBe(false);
+    });
+
+    it("should reject domain ending with hyphen", () => {
+      const result = validateEmail("user@example-.com");
+      expect(result.valid).toBe(false);
+    });
+
+    /**
+     * Acceptance test: Real-world scenarios from CHALLENGE.md
+     */
+    it("should handle TEST@example.com: reject uppercase with suggestion", () => {
+      const result = validateEmail("TEST@example.com");
+      expect(result.valid).toBe(false);
+      expect(result.error).toContain("uppercase");
+      expect(result.suggestion).toBe("test@example.com");
+    });
+
+    it("should reject common Gmail typo variations", () => {
+      const typos = [
+        { email: "user@gmai.com", suggestion: "user@gmail.com" },
+        { email: "user@gmial.com", suggestion: "user@gmail.com" },
+        { email: "user@gmail.con", suggestion: "user@gmail.com" },
+      ];
+      typos.forEach(({ email, suggestion }) => {
+        const result = validateEmail(email);
+        expect(result.valid).toBe(false);
+        expect(result.suggestion).toBe(suggestion);
+      });
     });
   });
 });
