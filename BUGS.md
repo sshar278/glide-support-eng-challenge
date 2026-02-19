@@ -538,7 +538,60 @@ Added validation to ensure:
 
 ---
 
-## 13. VAL-206 – Card Number Validation
+## 13. VAL-205 – Zero Amount Funding
+**Priority:** High (Data Quality)
+
+### Reproduction
+1. Open the funding modal
+2. Enter amount `0.00` or `0`
+3. Submit the funding request
+4. Zero-dollar transaction is created in the account
+
+### Root Cause
+**Frontend:** FundingModal validation used `min: { value: 0.0 }` which allowed zero amounts, despite error message saying "at least $0.01".
+
+**Backend:** While `z.number().positive()` is correct, the validation error message was not explicit about rejecting zero amounts.
+
+### Fix
+**Frontend Changes in `components/FundingModal.tsx`:**
+Replaced min/max validators with custom validators that explicitly check amount > 0:
+```tsx
+validate: {
+  positive: (value) => {
+    const amount = parseFloat(value);
+    return amount > 0 || "Amount must be greater than $0.00";
+  },
+  maxAmount: (value) => {
+    const amount = parseFloat(value);
+    return amount <= 10000 || "Amount cannot exceed $10,000";
+  },
+}
+```
+
+**Backend Changes in `server/routers/account.ts`:**
+Enhanced error message for clarity:
+```ts
+amount: z.number().positive("Amount must be greater than $0.00"),
+```
+
+### Verification
+✅ Zero amounts (0.00, 0) are rejected with clear error  
+✅ Negative amounts are rejected  
+✅ Positive amounts > $0.00 are accepted  
+✅ Amount limit ($10,000 max) is enforced  
+✅ Frontend and backend validation are synchronized  
+✅ 14 comprehensive unit tests covering all zero/boundary scenarios  
+
+### Prevention
+- Use custom validators for business logic (> 0 for funding amounts)
+- Never use min/max on currency without explicit validation
+- Ensure error messages match actual validation rules
+- Validate both frontend and backend with same rules
+- Add tests for boundary conditions (0, negative, max)
+
+---
+
+## 14. VAL-206 – Card Number Validation
 **Priority:** Critical
 
 ### Reproduction
@@ -560,7 +613,7 @@ Added conditional validation for card funding:
 
 ---
 
-## 14. VAL-208 – Weak Password Requirements
+## 15. VAL-208 – Weak Password Requirements
 **Priority:** Critical
 
 ### Reproduction

@@ -94,7 +94,7 @@ export const accountRouter = router({
     .input(
       z.object({
         accountId: z.number(),
-        amount: z.number().positive(),
+        amount: z.number().positive("Amount must be greater than $0.00"),
         fundingSource: z
   .object({
     type: z.enum(["card", "bank"]),
