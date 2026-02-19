@@ -21,7 +21,8 @@ if (!jwtSecret) {
  */
 function buildSessionCookie(token: string, maxAge: number = 604800): string {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  return `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure}`;
+  const expiresDate = new Date(Date.now() + maxAge * 1000).toUTCString();
+  return `session=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}; Expires=${expiresDate}${secure}`;
 }
 
 export const authRouter = router({

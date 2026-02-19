@@ -394,3 +394,32 @@ Always use Secure for authentication cookies in production.
 Enforce environment-based security configuration.
 
 
+---
+
+## SEC-307 – Session Cookie Missing Expires Attribute
+**Priority:** Medium (Security / Standards Compliance)
+
+### Reproduction
+Session cookies were set with `Max-Age=604800` but without an explicit `Expires` attribute.
+
+### Root Cause
+The cookie relied solely on `Max-Age`. Some browsers and intermediaries may handle expiration inconsistently when `Expires` is omitted.
+
+### Fix
+Added an `Expires` attribute aligned with `Max-Age`:
+
+```ts
+const expiresDate = new Date(Date.now() + maxAge * 1000).toUTCString();
+Cookie now includes both:
+
+Max-Age=604800;
+Expires=<UTC timestamp>
+Verification
+Cookie now shows both Max-Age and Expires in browser devtools.
+
+Session expiration behavior remains unchanged.
+
+Prevention
+Always include both Max-Age and Expires for authentication cookies to ensure cross-browser consistency.
+
+
