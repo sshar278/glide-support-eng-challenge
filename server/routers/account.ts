@@ -156,22 +156,24 @@ export const accountRouter = router({
         });
       }
 
-      // Create transaction
+      // Create transaction with explicit createdAt to ensure it's always set
+      const transactionCreatedAt = new Date().toISOString();
       await db.insert(transactions).values({
         accountId: input.accountId,
         type: "deposit",
         amount,
         description: `Funding from ${input.fundingSource.type}`,
         status: "completed",
+        createdAt: transactionCreatedAt,
         processedAt: new Date().toISOString(),
       });
 
-      // Fetch the created transaction
+      // Fetch the created transaction - order by createdAt DESC to ensure we get the latest one
       const transaction = await db
       .select()
       .from(transactions)
       .where(eq(transactions.accountId, input.accountId))
-      .orderBy(desc(transactions.createdAt))
+      .orderBy(desc(transactions.createdAt), desc(transactions.id))
       .limit(1)
       .get();
 
@@ -212,10 +214,12 @@ export const accountRouter = router({
         });
       }
 
+      // Fetch transactions ordered by createdAt DESC (newest first), with ID as tiebreaker for consistent ordering
       const accountTransactions = await db
         .select()
         .from(transactions)
-        .where(eq(transactions.accountId, input.accountId));
+        .where(eq(transactions.accountId, input.accountId))
+        .orderBy(desc(transactions.createdAt), desc(transactions.id));
 
       const accountDetails = await db.select().from(accounts).where(eq(accounts.id, input.accountId)).get();
 

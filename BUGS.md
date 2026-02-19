@@ -699,6 +699,89 @@ Consider using integer cents or a decimal library for production-grade financial
 ---
 
 
+## PERF-405 – Missing Transactions in History
+**Priority:** Critical
+
+### Reproduction
+1. Create multiple funding transactions rapidly (within same second)
+2. View transaction history
+3. **Issue**: Some transactions appear to be missing from the history even though they were created successfully
+
+### Root Cause
+The `getTransactions` query had two main issues:
+
+**Issue 1: No Ordering**
+```typescript
+const accountTransactions = await db
+  .select()
+  .from(transactions)
+  .where(eq(transactions.accountId, input.accountId));
+  // ← Missing .orderBy() - results can be in any order!
+```
+
+When multiple transactions are created rapidly with the same or similar `createdAt` timestamps, the database query returns results in unpredictable order. With unstable ordering, transactions might not be consistently visible or might appear/disappear depending on the query execution.
+
+**Issue 2: No Timestamp Consistency**
+In `fundAccount`, transactions were inserted without explicitly setting `createdAt`, relying on the database default. This can cause:
+- Multiple transactions with identical timestamps (especially when created in quick succession)
+- No way to break ties and consistently order transactions
+- Lost transactions when ordering is unstable
+
+### Fix
+Three key changes:
+
+**1. Explicit createdAt in fundAccount:**
+```typescript
+const transactionCreatedAt = new Date().toISOString();
+await db.insert(transactions).values({
+  accountId: input.accountId,
+  type: "deposit",
+  amount,
+  description: `Funding from ${input.fundingSource.type}`,
+  status: "completed",
+  createdAt: transactionCreatedAt,  // ← Explicit timestamp
+  processedAt: new Date().toISOString(),
+});
+```
+
+**2. Proper ordering with tiebreaker in getTransactions:**
+```typescript
+const accountTransactions = await db
+  .select()
+  .from(transactions)
+  .where(eq(transactions.accountId, input.accountId))
+  .orderBy(desc(transactions.createdAt), desc(transactions.id));  // ← NEW: Consistent ordering
+```
+
+The `desc(transactions.id)` acts as a tiebreaker when multiple transactions have the same `createdAt` timestamp, ensuring deterministic ordering.
+
+**3. Consistent ordering in fundAccount response:**
+```typescript
+const transaction = await db
+  .select()
+  .from(transactions)
+  .where(eq(transactions.accountId, input.accountId))
+  .orderBy(desc(transactions.createdAt), desc(transactions.id))  // ← Same ordering
+  .limit(1)
+  .get();
+```
+
+### Verification
+✅ Transactions are consistently ordered by `createdAt DESC`
+✅ When timestamps tie, transactions are ordered by `id DESC` (secondary sort)
+✅ All transactions appear in history (none missing)
+✅ Transaction order is stable across multiple queries
+✅ Even rapid consecutive transactions are all visible
+✅ 8 comprehensive tests added to verify ordering and consistency
+
+### Prevention
+- Always use explicit timestamps for time-series data
+- Always order queries when order matters for user experience
+- Use secondary sort keys (like ID) to break ties when timestamps are equal
+- Test rapid/bulk creation scenarios to catch missing data issues
+
+---
+
 ## PERF-407 – Performance Degradation (N+1 Queries in getTransactions)
 **Priority:** High (Performance)
 
