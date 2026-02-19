@@ -107,14 +107,14 @@ Below are customer-reported issues in ticket format. Each requires investigation
 - **Description**: "I accidentally entered my birth date as 2025 and the system accepted it."
 - **Impact**: Potential compliance issues with accepting minors
 
-**Ticket VAL-203: State Code Validation**
+**Ticket VAL-203: State Code Validation** (X)
 
 - **Reporter**: Alex Thompson
 - **Priority**: Medium
 - **Description**: "The system accepted 'XX' as a valid state code."
 - **Impact**: Address verification issues for banking communications
 
-**Ticket VAL-204: Phone Number Format**
+**Ticket VAL-204: Phone Number Format** (X)
 
 - **Reporter**: John Smith
 - **Priority**: Medium
@@ -135,7 +135,7 @@ Below are customer-reported issues in ticket format. Each requires investigation
 - **Description**: "System accepts invalid card numbers"
 - **Impact**: Failed transactions and customer frustration
 
-**Ticket VAL-207: Routing Number Optional**
+**Ticket VAL-207: Routing Number Optional** (done)
 
 - **Reporter**: Support Team
 - **Priority**: High
@@ -149,7 +149,7 @@ Below are customer-reported issues in ticket format. Each requires investigation
 - **Description**: "Password validation only checks length, not complexity"
 - **Impact**: Account security risks
 
-**Ticket VAL-209: Amount Input Issues**
+**Ticket VAL-209: Amount Input Issues** (X)
 
 - **Reporter**: Robert Lee
 - **Priority**: Medium
@@ -165,28 +165,28 @@ Below are customer-reported issues in ticket format. Each requires investigation
 
 ### Security Issues
 
-**Ticket SEC-301: SSN Storage**
+**Ticket SEC-301: SSN Storage** (done)
 
 - **Reporter**: Security Audit Team
 - **Priority**: Critical
 - **Description**: "SSNs are stored in plaintext in the database"
 - **Impact**: Severe privacy and compliance risk
 
-**Ticket SEC-302: Insecure Random Numbers**
+**Ticket SEC-302: Insecure Random Numbers** (done)
 
 - **Reporter**: Security Team
 - **Priority**: High
 - **Description**: "Account numbers generated using Math.random()"
 - **Impact**: Potentially predictable account numbers
 
-**Ticket SEC-303: XSS Vulnerability**
+**Ticket SEC-303: XSS Vulnerability** (done)
 
 - **Reporter**: Security Audit
 - **Priority**: Critical
 - **Description**: "Unescaped HTML rendering in transaction descriptions"
 - **Impact**: Potential for cross-site scripting attacks
 
-**Ticket SEC-304: Session Management**
+**Ticket SEC-304: Session Management** (done)
 
 - **Reporter**: DevOps Team
 - **Priority**: High
@@ -202,7 +202,7 @@ Below are customer-reported issues in ticket format. Each requires investigation
 - **Description**: "New accounts show $100 balance when DB operations fail"
 - **Impact**: Incorrect balance displays
 
-**Ticket PERF-402: Logout Issues**
+**Ticket PERF-402: Logout Issues** (X)
 
 - **Reporter**: QA Team
 - **Priority**: Medium
@@ -216,7 +216,7 @@ Below are customer-reported issues in ticket format. Each requires investigation
 - **Description**: "Expiring sessions still considered valid until exact expiry time"
 - **Impact**: Security risk near session expiration
 
-**Ticket PERF-404: Transaction Sorting**
+**Ticket PERF-404: Transaction Sorting** (X)
 
 - **Reporter**: Jane Doe
 - **Priority**: Medium

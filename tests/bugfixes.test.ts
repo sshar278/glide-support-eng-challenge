@@ -106,9 +106,9 @@ describe("Bug Fix Tests - BUGS.md Verification", () => {
   });
 
   // ============================================
-  // SEC-306 & SEC-307: Session Cookie Security
+  // Session Cookie Security
   // ============================================
-  describe("SEC-306 & SEC-307: Session Cookie with Secure & Expires", () => {
+  describe("Session Cookie with Secure & Expires", () => {
     beforeEach(() => {
       // Reset NODE_ENV before each test
       vi.stubEnv("NODE_ENV", "");
@@ -298,9 +298,9 @@ describe("Bug Fix Tests - BUGS.md Verification", () => {
   });
 
   // ============================================
-  // PERF-401: fundAccount Returns Latest Transaction
+  // fundAccount Returns Latest Transaction
   // ============================================
-  describe("PERF-401: fundAccount Returns Correct (Latest) Transaction", () => {
+  describe("fundAccount Returns Correct (Latest) Transaction", () => {
     it("should fetch latest transaction by createdAt descending", () => {
       // Verify the query logic in account.ts uses orderBy(desc(createdAt))
       const { readFileSync } = require("fs");
