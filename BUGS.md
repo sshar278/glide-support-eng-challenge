@@ -233,3 +233,46 @@ If multi-session is desired, require device metadata + session revocation UI
 
 Always support server-side session invalidation
 
+
+---
+
+## PERF-406 – Incorrect Balance Calculation (Floating Point Precision)
+**Priority:** High (Financial Correctness)
+
+### Reproduction
+1. Fund an account with a decimal amount (e.g., `0.1` or `0.2`).
+2. Observe the returned `newBalance` value.
+3. Notice slight inconsistencies due to floating point accumulation.
+
+### Root Cause
+In `server/routers/account.ts` inside the `fundAccount` mutation, the returned balance was calculated using repeated floating point addition:
+
+```ts
+let finalBalance = account.balance;
+for (let i = 0; i < 100; i++) {
+  finalBalance = finalBalance + amount / 100;
+}
+This introduced unnecessary floating point precision errors and returned a value different from what was actually written to the database.
+
+Fix
+Removed the floating accumulation loop and returned the exact value written to the database:
+
+const newBalance = account.balance + amount;
+
+return {
+  transaction,
+  newBalance,
+};
+Verification
+After fix:
+
+Funding with decimal values (e.g., 0.1, 0.2) produces consistent and predictable balances.
+
+The returned balance matches the stored database value.
+
+Prevention
+Avoid repeated floating arithmetic for financial values.
+
+Always return the exact persisted value.
+
+Consider using integer cents or a decimal library for production-grade financial systems.

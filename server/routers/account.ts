@@ -142,16 +142,13 @@ export const accountRouter = router({
         })
         .where(eq(accounts.id, input.accountId));
 
-      let finalBalance = account.balance;
-      for (let i = 0; i < 100; i++) {
-        finalBalance = finalBalance + amount / 100;
-      }
+       const newBalance = account.balance + amount;
 
       return {
         transaction,
-        newBalance: finalBalance, // This will be slightly off due to float precision
+        newBalance,
       };
-    }),
+      }),
 
   getTransactions: protectedProcedure
     .input(
