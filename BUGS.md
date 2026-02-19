@@ -406,6 +406,84 @@ validate: {
 ✅ 13 comprehensive tests added to verify all password complexity rules
 
 
+## PERF-401 – Account Creation Error Handling
+**Priority:** Critical
+
+### Reproduction
+1. Create a new checking or savings account
+2. If the database retrieval fails after insertion, the system would show a $100 balance
+3. However, the actual account in the database would have $0
+
+### Root Cause
+In `server/routers/account.ts`, the `createAccount` mutation had a dangerous fallback pattern:
+
+```typescript
+return (
+  account || {
+    id: 0,
+    userId: ctx.user.id,
+    accountNumber: accountNumber!,
+    accountType: input.accountType,
+    balance: 100,  // ← BUG: Hardcoded fallback balance!
+    status: "pending",
+    createdAt: new Date().toISOString(),
+  }
+);
+```
+
+**The Issue:**
+1. Account is inserted into database with `balance: 0`
+2. System tries to fetch the created account from the database
+3. If the fetch operation fails (connection error, DB issue, etc.), the account variable is `null`
+4. The `||` operator triggers the fallback object with `balance: 100`
+5. **UI shows $100 balance, but the account in the database has $0**
+6. This creates a discrepancy and confusion
+
+### Fix
+Remove the dangerous fallback object. If the account cannot be retrieved, throw an error:
+
+```typescript
+await db.insert(accounts).values({
+  userId: ctx.user.id,
+  accountNumber: accountNumber!,
+  accountType: input.accountType,
+  balance: 0,
+  status: "active",
+});
+
+// Fetch the created account
+const account = await db.select().from(accounts).where(eq(accounts.accountNumber, accountNumber!)).get();
+
+if (!account) {
+  throw new TRPCError({
+    code: "INTERNAL_SERVER_ERROR",
+    message: "Failed to create account: unable to retrieve account after creation",
+  });
+}
+
+return account;
+```
+
+**Key Changes:**
+- ✅ Removed the fallback object with `balance: 100`
+- ✅ Account status is set to `"active"` (not `"pending"`)
+- ✅ If retrieval fails, throw an explicit error instead of returning incorrect data
+- ✅ Ensures UI will show an error rather than a wrong balance
+
+### Verification
+✅ All newly created accounts start with $0 balance (not $100)
+✅ Account status is `"active"` (not `"pending"`)
+✅ If database retrieval fails, user gets an error message instead of incorrect data
+✅ No silent failure that shows wrong balance
+✅ 6 comprehensive tests added to verify error handling and balance correctness
+
+### Prevention
+- Always verify database operations succeeded before returning data to the client
+- Avoid fallback objects with hardcoded/incorrect values
+- Use explicit error handling instead of silently returning wrong data
+- Test database failure scenarios to ensure proper error propagation
+
+
 ## SEC-301 – SSN Stored in Plaintext
 **Priority:** Critical (Security)
 
