@@ -4,6 +4,30 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { trpc } from "@/lib/trpc/client";
 
+/**
+ * Validates a card number using the Luhn algorithm
+ */
+function isValidLuhn(cardNumber: string): boolean {
+  let sum = 0;
+  let shouldDouble = false;
+
+  for (let i = cardNumber.length - 1; i >= 0; i--) {
+    const digit = Number(cardNumber[i]);
+    if (Number.isNaN(digit)) return false;
+
+    let add = digit;
+    if (shouldDouble) {
+      add = digit * 2;
+      if (add > 9) add -= 9;
+    }
+
+    sum += add;
+    shouldDouble = !shouldDouble;
+  }
+
+  return sum % 10 === 0;
+}
+
 interface FundingModalProps {
   accountId: number;
   onClose: () => void;
@@ -114,20 +138,30 @@ export function FundingModal({ accountId, onClose, onSuccess }: FundingModalProp
             <input
               {...register("accountNumber", {
                 required: `${fundingType === "card" ? "Card" : "Account"} number is required`,
-                pattern: {
-                  value: fundingType === "card" ? /^\d{16}$/ : /^\d+$/,
-                  message: fundingType === "card" ? "Card number must be 16 digits" : "Invalid account number",
-                },
                 validate: {
-                  validCard: (value) => {
+                  cardFormat: (value) => {
                     if (fundingType !== "card") return true;
-                    return value.startsWith("4") || value.startsWith("5") || "Invalid card number";
+                    const digitsOnly = value.replace(/\s|-/g, "");
+                    if (!/^\d{13,19}$/.test(digitsOnly)) {
+                      return "Card number must be 13-19 digits";
+                    }
+                    return true;
+                  },
+                  cardLuhn: (value) => {
+                    if (fundingType !== "card") return true;
+                    const digitsOnly = value.replace(/\s|-/g, "");
+                    if (!/^\d{13,19}$/.test(digitsOnly)) return true; // Skip if format invalid
+                    return isValidLuhn(digitsOnly) || "Invalid card number (failed validation)";
+                  },
+                  bankFormat: (value) => {
+                    if (fundingType !== "bank") return true;
+                    return /^\d+$/.test(value) || "Account number must contain only digits";
                   },
                 },
               })}
               type="text"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
-              placeholder={fundingType === "card" ? "1234567812345678" : "123456789"}
+              placeholder={fundingType === "card" ? "Card number (13-19 digits)" : "Account number"}
             />
             {errors.accountNumber && <p className="mt-1 text-sm text-red-600">{errors.accountNumber.message}</p>}
           </div>

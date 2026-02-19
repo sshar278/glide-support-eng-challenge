@@ -121,14 +121,14 @@ Below are customer-reported issues in ticket format. Each requires investigation
 - **Description**: "International phone numbers aren't properly validated. The system accepts any string of numbers."
 - **Impact**: Unable to contact customers for important notifications
 
-**Ticket VAL-205: Zero Amount Funding**
+**Ticket VAL-205: Zero Amount Funding** (done)
 
 - **Reporter**: Lisa Johnson
 - **Priority**: High
 - **Description**: "I was able to submit a funding request for $0.00"
 - **Impact**: Creates unnecessary transaction records
 
-**Ticket VAL-206: Card Number Validation**
+**Ticket VAL-206: Card Number Validation** (done)
 
 - **Reporter**: David Brown
 - **Priority**: Critical
