@@ -1,4 +1,5 @@
 # SecureBank - SDET Technical Interview
+# I have documented all the bugs found in BUGS.md, and corresponding verifying test cases are in tests/bugfixes.test.ts
 
 This repository contains a banking application for the Software Development Test Engineer (SDET) technical interview.
 
